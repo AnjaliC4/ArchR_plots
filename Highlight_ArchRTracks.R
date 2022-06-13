@@ -50,6 +50,7 @@ library(ArchR)
 #' @param title The title to add at the top of the plot next to the plot's genomic coordinates.
 #' @param verbose A boolean value that determines whether standard output should be printed.
 #' @param logFile The path to a file to be used for logging ArchR output.
+#' @param highlight Add a valid GRanges obj to highlight a genomic region
 #' @export
 plotBrowserTrack <- function(
   ArchRProj = NULL, 
@@ -81,18 +82,24 @@ plotBrowserTrack <- function(
   title = "",
   verbose = TRUE,
   logFile = createLogFile("plotBrowserTrack"),
-  highlight = gr  #supply a valid GRanges obj
+  highlight = highlight  #supply a valid GRanges obj
 ){
   
 
+#logging functions
+
+ArchR:::.startLogging(logFile=logFile)
+  ArchR:::.logThis(mget(names(formals()),sys.frame(sys.nframe())), "ArchRBrowser Input-Parameters", logFile = logFile)
+
+tstart <- Sys.time()
+  ArchR:::.startLogging(logFile=logFile)
+  ArchR:::.logThis(mget(names(formals()),sys.frame(sys.nframe())), "plotBrowserTrack Input-Parameters", logFile = logFile)
 
   ##########################################################
   # Get Region Where Plot Will Occur (GenomicRanges)
   ##########################################################
-  gr <- data.frame(gr)
-  rect <- data.frame(xmin=gr$start, xmax=gr$end, ymin=-Inf, ymax=Inf)
   
-  .logDiffTime("Validating Region", t1=tstart, verbose=verbose, logFile=logFile)
+  ArchR:::.logDiffTime("Validating Region", t1=tstart, verbose=verbose, logFile=logFile)
   if(is.null(region)){
     if(!is.null(geneSymbol)){
       region <- geneAnnotation$genes
@@ -104,15 +111,15 @@ plotBrowserTrack <- function(
       region <- extendGR(region, upstream = upstream, downstream = downstream)
     }
   }
-  region <- .validGRanges(region)
-  .logThis(region, "region", logFile = logFile)
+  region <- ArchR:::.validGRanges(region)
+  ArchR:::.logThis(region, "region", logFile = logFile)
   
   if(is.null(geneSymbol)){
     useMatrix <- NULL
   }
   
   if(!is.null(useMatrix)){
-    featureMat <- .getMatrixValues(
+    featureMat <- ArchR:::.getMatrixValues(
       ArchRProj = ArchRProj,
       matrixName = useMatrix,
       name = mcols(region)$symbol
@@ -127,12 +134,12 @@ plotBrowserTrack <- function(
   ggList <- lapply(seq_along(region), function(x){
     
     plotList <- list()
-    
+    #print(rect)
     ##########################################################
     # Bulk Tracks
     ##########################################################
     if("bulktrack" %in% tolower(plotSummary)){
-      .logDiffTime(sprintf("Adding Bulk Tracks (%s of %s)",x,length(region)), t1=tstart, verbose=verbose, logFile=logFile)
+      ArchR:::.logDiffTime(sprintf("Adding Bulk Tracks (%s of %s)",x,length(region)), t1=tstart, verbose=verbose, logFile=logFile)
       plotList$bulktrack <- .bulkTracks(
         ArchRProj = ArchRProj, 
         region = region[x], 
@@ -150,7 +157,7 @@ plotBrowserTrack <- function(
         geneAnnotation = geneAnnotation,
         title = title,
         useGroups = useGroups,
-        tstart = tstart,
+        tstart = tstart,highlight = highlight ,
         logFile = logFile) + theme(plot.margin = unit(c(0.35, 0.75, 0.35, 0.75), "cm"))
     }
     
@@ -158,7 +165,7 @@ plotBrowserTrack <- function(
     # Bulk Tracks
     ##########################################################
     if("sctrack" %in% tolower(plotSummary)){
-      .logDiffTime(sprintf("Adding SC Tracks (%s of %s)",x,length(region)), t1=tstart, verbose=verbose, logFile=logFile)
+      ArchR:::.logDiffTime(sprintf("Adding SC Tracks (%s of %s)",x,length(region)), t1=tstart, verbose=verbose, logFile=logFile)
       plotList$sctrack <- .scTracks(
         ArchRProj = ArchRProj, 
         region = region[x], 
@@ -176,7 +183,7 @@ plotBrowserTrack <- function(
         geneAnnotation = geneAnnotation,
         title = title,
         useGroups = useGroups,
-        tstart = tstart,
+        tstart = tstart,highlight = highlight ,
         logFile = logFile) + theme(plot.margin = unit(c(0.35, 0.75, 0.35, 0.75), "cm"))
     }
     
@@ -185,13 +192,13 @@ plotBrowserTrack <- function(
     ##########################################################
     if("featuretrack" %in% tolower(plotSummary)){
       if(!is.null(features)){
-        .logDiffTime(sprintf("Adding Feature Tracks (%s of %s)",x,length(region)), t1=tstart, verbose=verbose, logFile=logFile)
+        ArchR:::.logDiffTime(sprintf("Adding Feature Tracks (%s of %s)",x,length(region)), t1=tstart, verbose=verbose, logFile=logFile)
         plotList$featuretrack <- .featureTracks(
           features = features, 
           region = region[x], 
           facetbaseSize = facetbaseSize,
           hideX = TRUE, 
-          title = "Peaks",
+          title = "Peaks",highlight = highlight ,
           logFile = logFile) + theme(plot.margin = unit(c(0.1, 0.75, 0.1, 0.75), "cm"))
       }
     }
@@ -201,14 +208,14 @@ plotBrowserTrack <- function(
     ##########################################################
     if("looptrack" %in% tolower(plotSummary)){
       if(!is.null(loops)){
-        .logDiffTime(sprintf("Adding Loop Tracks (%s of %s)",x,length(region)), t1=tstart, verbose=verbose, logFile=logFile)
+        ArchR:::.logDiffTime(sprintf("Adding Loop Tracks (%s of %s)",x,length(region)), t1=tstart, verbose=verbose, logFile=logFile)
         plotList$looptrack <- .loopTracks(
           loops = loops, 
           region = region[x], 
           facetbaseSize = facetbaseSize,
           hideX = TRUE, 
           hideY = TRUE,
-          title = "Loops",
+          title = "Loops",highlight = highlight ,
           logFile = logFile) + theme(plot.margin = unit(c(0.1, 0.75, 0.1, 0.75), "cm"))
       }
     }
@@ -217,12 +224,12 @@ plotBrowserTrack <- function(
     # Gene Tracks
     ##########################################################
     if("genetrack" %in% tolower(plotSummary)){
-      .logDiffTime(sprintf("Adding Gene Tracks (%s of %s)",x,length(region)), t1=tstart, verbose=verbose, logFile=logFile)
+      ArchR:::.logDiffTime(sprintf("Adding Gene Tracks (%s of %s)",x,length(region)), t1=tstart, verbose=verbose, logFile=logFile)
       plotList$genetrack <- .geneTracks(
         geneAnnotation = geneAnnotation, 
         region = region[x], 
         facetbaseSize = facetbaseSize,
-        title = "Genes",
+        title = "Genes",highlight = highlight ,
         logFile = logFile) + theme(plot.margin = unit(c(0.1, 0.75, 0.1, 0.75), "cm"))
     }
     
@@ -234,15 +241,15 @@ plotBrowserTrack <- function(
     sizes <- sizes[order(plotSummary)]
     plotSummary <- plotSummary[order(plotSummary)]
     
-    # nullSummary <- unlist(lapply(seq_along(plotSummary), function(x) is.null(eval(parse(text=paste0("plotList$", plotSummary[x]))))))
-    # if(any(nullSummary)){
-    #   sizes <- sizes[-which(nullSummary)]
-    # }
+     nullSummary <- unlist(lapply(seq_along(plotSummary), function(x) is.null(eval(parse(text=paste0("plotList$", plotSummary[x]))))))
+     if(any(nullSummary)){
+       sizes <- sizes[-which(nullSummary)]
+     }
     sizes <- sizes[tolower(names(plotList))]
     
     if(!is.null(useMatrix)){
       
-      suppressWarnings(.combinedFeaturePlot(
+      suppressWarnings(ArchR:::.combinedFeaturePlot(
         plotList = plotList,
         log2Norm = log2Norm,
         featureMat = featureMat,
@@ -258,23 +265,23 @@ plotBrowserTrack <- function(
       
     }else{
       
-      .logThis(names(plotList), sprintf("(%s of %s) names(plotList)",x,length(region)), logFile=logFile)
-      .logThis(sizes, sprintf("(%s of %s) sizes",x,length(region)), logFile=logFile)
-      #.logThis(nullSummary, sprintf("(%s of %s) nullSummary",x,length(region)), logFile=logFile)
-      .logDiffTime("Plotting", t1=tstart, verbose=verbose, logFile=logFile)
+      ArchR:::.logThis(names(plotList), sprintf("(%s of %s) names(plotList)",x,length(region)), logFile=logFile)
+      ArchR:::.logThis(sizes, sprintf("(%s of %s) sizes",x,length(region)), logFile=logFile)
+      ArchR:::.logThis(nullSummary, sprintf("(%s of %s) nullSummary",x,length(region)), logFile=logFile)
+      ArchR:::.logDiffTime("Plotting", t1=tstart, verbose=verbose, logFile=logFile)
       
       tryCatch({
         suppressWarnings(ggAlignPlots(plotList = plotList, sizes=sizes, draw = FALSE))
       }, error = function(e){
-        .logMessage("Error with plotting, diagnosing each element", verbose = TRUE, logFile = logFile)
+        ArchR:::.logMessage("Error with plotting, diagnosing each element", verbose = TRUE, logFile = logFile)
         for(i in seq_along(plotList)){
           tryCatch({
             print(plotList[[i]])
           }, error = function(f){
-            .logError(f, fn = names(plotList)[i], info = "", errorList = NULL, logFile = logFile)
+            ArchR:::.logError(f, fn = names(plotList)[i], info = "", errorList = NULL, logFile = logFile)
           })
         }
-        .logError(e, fn = "ggAlignPlots", info = "", errorList = NULL, logFile = logFile)
+        ArchR:::.logError(e, fn = "ggAlignPlots", info = "", errorList = NULL, logFile = logFile)
       })
       
     }
@@ -289,7 +296,7 @@ plotBrowserTrack <- function(
     }
   }
   
-  .endLogging(logFile=logFile)
+  ArchR:::.endLogging(logFile=logFile)
   
   ggList
   
@@ -318,16 +325,19 @@ plotBrowserTrack <- function(
   tstart = NULL,
   verbose = FALSE,
   logFile = NULL,
-  highlight = gr 
+  highlight = highlight
 ){
   
-  .requirePackage("ggplot2", source = "cran")
+  ArchR:::.requirePackage("ggplot2", source = "cran")
   
+  gr <- data.frame(highlight)
+  rect <- data.frame(xmin=gr$start, xmax=gr$end, ymin=-Inf, ymax=Inf)
+  print(rect)
   if(is.null(tstart)){
     tstart <- Sys.time()
   }
   
-  df <- .groupRegionSumArrows(
+  df <- ArchR:::.groupRegionSumArrows(
     ArchRProj = ArchRProj, 
     groupBy = groupBy, 
     normMethod = normMethod,
@@ -339,7 +349,7 @@ plotBrowserTrack <- function(
     verbose = verbose,
     logFile = logFile
   )
-  .logThis(split(df, df[,3]), ".bulkTracks df", logFile = logFile)
+  ArchR:::.logThis(split(df, df[,3]), ".bulkTracks df", logFile = logFile)
   
   ######################################################
   # Plot Track
@@ -369,7 +379,7 @@ plotBrowserTrack <- function(
   #Plot Track
   p <- ggplot(df, aes_string("x","y", color = "group", fill = "group")) + 
     geom_area(stat = "identity") + 
-    facet_wrap(facets = ~group, strip.position = 'right', ncol = 1) + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color="grey20", alpha=0.5, inherit.aes = FALSE) + 
+    facet_wrap(facets = ~group, strip.position = 'right', ncol = 1) + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color=NA, alpha=0.3, inherit.aes = FALSE) + 
     ylab(sprintf("Coverage\n(Norm. ATAC Signal Range (%s-%s) by %s)", round(min(ylim),2), round(max(ylim),2), normMethod)) +
     scale_color_manual(values = pal) + 
     scale_fill_manual(values = pal) +
@@ -392,6 +402,7 @@ plotBrowserTrack <- function(
           strip.background = element_rect(color="black")) +
     guides(fill = FALSE, colour = FALSE) + ggtitle(title) 
   
+  #print(p)
   p
   
 }
@@ -449,10 +460,10 @@ plotBrowserTrack <- function(
   ArrowFiles <- getArrowFiles(ArchRProj)
   ArrowFiles <- ArrowFiles[names(cellsBySample)]
   
-  groupMat <- .safelapply(seq_along(ArrowFiles), function(i){
-    .logMessage(sprintf("Getting Region From Arrow Files %s of %s", i, length(ArrowFiles)), logFile = logFile)
+  groupMat <- ArchR:::.safelapply(seq_along(ArrowFiles), function(i){
+    #ArchR:::.logMessage(sprintf("Getting Region From Arrow Files %s of %s", i, length(ArrowFiles)), logFile = logFile)
     tryCatch({
-      .regionSumArrows(
+      ArchR:::.regionSumArrows(
         ArrowFile = ArrowFiles[i], 
         region = region, 
         regionTiles = regionTiles,
@@ -471,7 +482,7 @@ plotBrowserTrack <- function(
         cellGroups = groupsBySample[[names(ArrowFiles)[i]]],
         uniqueGroups = uniqueGroups
       )
-      .logError(e, fn = ".groupRegionSumArrows", info = .sampleName(ArrowFiles[i]), errorList = errorList, logFile = logFile)
+      #ArchR:::.logError(e, fn = ".groupRegionSumArrows", info = .sampleName(ArrowFiles[i]), errorList = errorList, logFile = logFile)
     })
   }, threads = threads) %>% Reduce("+" , .)
   
@@ -614,15 +625,17 @@ plotBrowserTrack <- function(
   facetbaseSize,
   colorMinus = "dodgerblue2",
   colorPlus = "red",
-  logFile = NULL
+  logFile = NULL, highlight=highlight
 ){
-  
-  .requirePackage("ggplot2", source = "cran")
-  .requirePackage("ggrepel", source = "cran")
+  gr <- data.frame(highlight)
+  rect <- data.frame(xmin=gr$start, xmax=gr$end, ymin=-Inf, ymax=Inf)
+  print(rect)
+  ArchR:::.requirePackage("ggplot2", source = "cran")
+  ArchR:::.requirePackage("ggrepel", source = "cran")
   
   #only take first region
-  region <- .validGRanges(region)
-  region <- .subsetSeqnamesGR(region[1], as.character(seqnames(region[1])))
+  region <- ArchR:::.validGRanges(region)
+  region <- ArchR:::.subsetSeqnamesGR(region[1], as.character(seqnames(region[1])))
   
   genes <- sort(sortSeqlevels(geneAnnotation$genes), ignore.strand = TRUE)
   exons <- sort(sortSeqlevels(geneAnnotation$exons), ignore.strand = TRUE)
@@ -659,7 +672,7 @@ plotBrowserTrack <- function(
     pal <- c("-"=colorMinus,"+"=colorPlus,"*"=colorPlus)
     
     p <- ggplot(data = genesO, aes(color = strand, fill = strand)) +
-      facet_grid(facet~.) + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color="grey20", alpha=0.5, inherit.aes = FALSE) + 
+      facet_grid(facet~.) + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),color=NA, alpha=0.3, inherit.aes = FALSE) + 
       #################################################
     #Limits
     #################################################
@@ -722,7 +735,7 @@ plotBrowserTrack <- function(
     df <- data.frame(facet = "GeneTrack", start = 0, end = 0, strand = "*", symbol = "none")
     pal <- c("*"=colorPlus)
     p <- ggplot(data = df, aes(start, end, fill = strand)) + geom_point() +
-      facet_grid(facet~.) + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color="grey20", alpha=0.5, inherit.aes = FALSE) + 
+      facet_grid(facet~.) + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color=NA, alpha=0.3, inherit.aes = FALSE) + 
       theme_ArchR(baseSize = baseSize, baseLineSize = borderWidth, baseRectSize = borderWidth) +
       scale_color_manual(values = pal) +
       scale_x_continuous(limits = c(start(region), end(region)), expand = c(0,0)) +
@@ -732,7 +745,7 @@ plotBrowserTrack <- function(
   }
   
   if(!is.ggplot(p)){
-    .logError("geneTrack is not a ggplot!", fn = ".geneTracks", info = "", errorList = NULL, logFile = logFile)
+    ArchR:::.logError("geneTrack is not a ggplot!", fn = ".geneTracks", info = "", errorList = NULL, logFile = logFile)
   }
   
   return(p)
@@ -753,19 +766,21 @@ plotBrowserTrack <- function(
   borderWidth = 0.4, 
   hideX = FALSE, 
   hideY = FALSE,
-  logFile = NULL
+  logFile = NULL,highlight=highlight
 ){
-  
-  .requirePackage("ggplot2", source = "cran")
+  gr <- data.frame(highlight)
+  rect <- data.frame(xmin=gr$start, xmax=gr$end, ymin=-Inf, ymax=Inf)
+  print(rect)
+  ArchR:::.requirePackage("ggplot2", source = "cran")
   
   #only take first region
-  region <- .validGRanges(region)
-  region <- .subsetSeqnamesGR(region[1], as.character(seqnames(region[1])))
+  region <- ArchR:::.validGRanges(region)
+  region <- ArchR:::.subsetSeqnamesGR(region[1], as.character(seqnames(region[1])))
   
   if(!is.null(features)){
     
-    if(!.isGRList(features)){
-      features <- .validGRanges(features)
+    if(!ArchR:::.isGRList(features)){
+      features <- ArchR:::.validGRanges(features)
       featureList <- SimpleList(FeatureTrack = features)
       hideY <- TRUE
     }else{
@@ -790,7 +805,7 @@ plotBrowserTrack <- function(
     
     featureO <- Reduce("rbind", featureO)
     
-    .logThis(featureO, "featureO", logFile = logFile)
+    ##ArchR:::.logThis(featureO, "featureO", logFile = logFile)
     
     featureO$facet <- title
     
@@ -801,7 +816,7 @@ plotBrowserTrack <- function(
     featureO$name <- factor(paste0(featureO$name), levels=names(featureList))
     
     p <- ggplot(data = featureO, aes(color = name)) +
-      facet_grid(facet~.) +geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color="grey20", alpha=0.5, inherit.aes = FALSE)+
+      facet_grid(facet~.) +geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color=NA, alpha=0.3, inherit.aes = FALSE)+
       geom_segment(data = featureO, aes(x = start, xend = end, y = name, yend = name, color = name), size=featureWidth) +
       ylab("") + xlab("") + 
       scale_x_continuous(limits = c(start(region), end(region)), expand = c(0,0)) +
@@ -816,7 +831,7 @@ plotBrowserTrack <- function(
     df <- data.frame(facet = "FeatureTrack", start = 0, end = 0, strand = "*", symbol = "none")
     p <- ggplot(data = df, aes(start, end)) + 
       geom_point() +
-      facet_grid(facet~.) + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color="grey20", alpha=0.5, inherit.aes = FALSE)+
+      facet_grid(facet~.) + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color=NA, alpha=0.3, inherit.aes = FALSE)+
       theme_ArchR(baseSize = baseSize, baseLineSize = borderWidth, baseRectSize = borderWidth) +
       scale_x_continuous(limits = c(start(region), end(region)), expand = c(0,0)) +
       theme(axis.title.x=element_blank(), axis.text.x=element_blank(),axis.ticks.x=element_blank()) +
@@ -833,7 +848,7 @@ plotBrowserTrack <- function(
   }
   
   if(!is.ggplot(p)){
-    .logError("featureTrack is not a ggplot!", fn = ".featureTracks", info = "", errorList = NULL, logFile = logFile)
+    ArchR:::.logError("featureTrack is not a ggplot!", fn = ".featureTracks", info = "", errorList = NULL, logFile = logFile)
   }
   
   return(p)
@@ -854,9 +869,11 @@ plotBrowserTrack <- function(
   borderWidth = 0.4, 
   hideX = FALSE, 
   hideY = FALSE,
-  logFile = NULL
+  logFile = NULL,highlight=highlight
 ){
-  
+  gr <- data.frame(highlight)
+  rect <- data.frame(xmin=gr$start, xmax=gr$end, ymin=-Inf, ymax=Inf)
+  print(rect)
   getArchDF <- function(lp, r = 100){
     angles <- seq(pi, 2*pi,length.out=100)
     rx <- (end(lp)-start(lp))/2
@@ -876,7 +893,7 @@ plotBrowserTrack <- function(
     
     if(is(loops, "GRanges")){
       loops <- SimpleList(Loops = loops)
-    }else if(.isGRList(loops)){
+    }else if(ArchR:::.isGRList(loops)){
     }else{
       stop("Loops is not a GRanges or a list of GRanges! Please supply valid input!")
     }
@@ -894,7 +911,7 @@ plotBrowserTrack <- function(
         NULL
       }
     }) %>% Reduce("rbind",.)
-    .logThis(loopO, "loopO", logFile = logFile)
+    ArchR:::.logThis(loopO, "loopO", logFile = logFile)
     
     testDim <- tryCatch({
       if(is.null(loopO)){
@@ -918,7 +935,7 @@ plotBrowserTrack <- function(
       
       p <- ggplot(data = data.frame(loopO), aes(x = x, y = y, group = id, color = value)) + 
         geom_line() +
-        facet_grid(name ~ .) +geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color="grey20", alpha=0.5, inherit.aes = FALSE)+
+        facet_grid(name ~ .) +geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color=NA, alpha=0.3, inherit.aes = FALSE)+
         ylab("") + 
         coord_cartesian(ylim = c(-100,0)) +
         scale_x_continuous(limits = c(start(region), end(region)), expand = c(0,0)) +
@@ -935,8 +952,8 @@ plotBrowserTrack <- function(
       df <- data.frame(facet = "LoopTrack", start = 0, end = 0, strand = "*", symbol = "none")
       p <- ggplot(data = df, aes(start, end)) + 
         geom_point() + 
-        facet_grid(facet~.) +geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color="grey20", alpha=0.5, inherit.aes = FALSE)+
-        theme_ArchR(baseSize = baseSize, baseLineSize = borderWidth, baseRectSize = borderWidth) +
+        facet_grid(facet~.) +geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color=NA, alpha=0.3, inherit.aes = FALSE)+
+        theme_ArchR(baseSize = baseSize, baseLineSize = borderWidth, baseRectSize = borderWidth) 
         scale_x_continuous(limits = c(start(region), end(region)), expand = c(0,0)) +
         theme(axis.title.x=element_blank(), axis.text.x=element_blank(),axis.ticks.x=element_blank()) +
         theme(axis.title.y=element_blank(), axis.text.y=element_blank(),axis.ticks.y=element_blank())
@@ -949,7 +966,7 @@ plotBrowserTrack <- function(
     df <- data.frame(facet = "LoopTrack", start = 0, end = 0, strand = "*", symbol = "none")
     p <- ggplot(data = df, aes(start, end)) + 
       geom_point() +
-      facet_grid(facet~.) +geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color="grey20", alpha=0.5, inherit.aes = FALSE)+
+      facet_grid(facet~.) +geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),color=NA, alpha=0.3, inherit.aes = FALSE)+
       theme_ArchR(baseSize = baseSize, baseLineSize = borderWidth, baseRectSize = borderWidth) +
       scale_x_continuous(limits = c(start(region), end(region)), expand = c(0,0)) +
       theme(axis.title.x=element_blank(), axis.text.x=element_blank(),axis.ticks.x=element_blank()) +
@@ -966,7 +983,7 @@ plotBrowserTrack <- function(
   }
   
   if(!is.ggplot(p)){
-    .logError("loopTracks is not a ggplot!", fn = ".loopTracks", info = "", errorList = NULL, logFile = logFile)
+    ArchR:::.logError("loopTracks is not a ggplot!", fn = ".loopTracks", info = "", errorList = NULL, logFile = logFile)
   }
   
   return(p)
@@ -974,8 +991,8 @@ plotBrowserTrack <- function(
 }
 
 .subsetSeqnamesGR <- function(gr = NULL, names = NULL){
-  .validInput(input = gr, name = "gr", valid = c("GRanges"))
-  .validInput(input = names, name = "names", valid = c("character"))
+  ArchR:::.validInput(input = gr, name = "gr", valid = c("GRanges"))
+  ArchR:::.validInput(input = names, name = "names", valid = c("character"))
   gr <- gr[which(as.character(seqnames(gr)) %in% names),]
   seqlevels(gr) <- as.character(unique(seqnames(gr)))
   return(gr)
@@ -1004,10 +1021,12 @@ plotBrowserTrack <- function(
   pal = NULL,
   tstart = NULL,
   verbose = FALSE,
-  logFile = NULL
+  logFile = NULL,highlight=highlight
 ){
-  
-  .requirePackage("ggplot2", source = "cran")
+  gr <- data.frame(highlight)
+  rect <- data.frame(xmin=gr$start, xmax=gr$end, ymin=-Inf, ymax=Inf)
+  print(rect)
+  ArchR:::.requirePackage("ggplot2", source = "cran")
   
   if(is.null(tstart)){
     tstart <- Sys.time()
@@ -1049,10 +1068,10 @@ plotBrowserTrack <- function(
   ArrowFiles <- getArrowFiles(ArchRProj)
   ArrowFiles <- ArrowFiles[names(cellsBySample)]
   
-  groupMat <- .safelapply(seq_along(ArrowFiles), function(i){
-    .logMessage(sprintf("Getting Region From Arrow Files %s of %s", i, length(ArrowFiles)), logFile = logFile)
+  groupMat <- ArchR:::.safelapply(seq_along(ArrowFiles), function(i){
+    ArchR:::.logMessage(sprintf("Getting Region From Arrow Files %s of %s", i, length(ArrowFiles)), logFile = logFile)
     tryCatch({
-      .regionSCArrows(
+      ArchR:::.regionSCArrows(
         ArrowFile = ArrowFiles[i], 
         region = region, 
         regionTiles = regionTiles,
@@ -1071,7 +1090,7 @@ plotBrowserTrack <- function(
         cellGroups = groupsBySample[[names(ArrowFiles)[i]]],
         uniqueGroups = uniqueGroups
       )
-      .logError(e, fn = ".groupRegionSCArrows", info = .sampleName(ArrowFiles[i]), errorList = errorList, logFile = logFile)
+      ArchR:::.logError(e, fn = ".groupRegionSCArrows", info = .sampleName(ArrowFiles[i]), errorList = errorList, logFile = logFile)
     })
   }, threads = threads) %>% Reduce("cbind" , .)
   
@@ -1107,7 +1126,7 @@ plotBrowserTrack <- function(
   
   p <- ggplot(groupDF, aes(x=bp, y=y, width = tileSize, fill = group2, color = group2)) + 
     geom_tile(size = scTileSize) + 
-    facet_grid(group2 ~ ., scales="free_y") + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color="grey20", alpha=0.5, inherit.aes = FALSE)+
+    facet_grid(group2 ~ ., scales="free_y") + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax),color=NA, alpha=0.3, inherit.aes = FALSE)+
     theme_ArchR() + 
     scale_color_manual(values = pal) +
     scale_fill_manual(values = pal) +
@@ -1198,7 +1217,7 @@ plotBrowserTrack <- function(
   tickWidth = NULL
 ){
   
-  .requirePackage("patchwork", installInfo = "devtools::install_github('thomasp85/patchwork')")
+  ArchR:::.requirePackage("patchwork", installInfo = "devtools::install_github('thomasp85/patchwork')")
   
   if(is.null(pal)){
     pal <- paletteDiscrete(values=featureMat$Group, set = "stallion")
@@ -1215,7 +1234,7 @@ plotBrowserTrack <- function(
     y = featureMat[,feature],
     groupOrder = gtools::mixedsort(paste0(unique(featureMat$Group))),
     pal = pal
-  ) + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color="grey20", alpha=0.5, inherit.aes = FALSE)+
+  ) +
     facet_wrap(x~., ncol=1,scales="free_y",strip.position="right") +
     guides(fill = FALSE, colour = FALSE) +
     theme_ArchR(baseSize = baseSize,
@@ -1279,4 +1298,5 @@ plotBrowserTrack <- function(
   p
   
 }
+
 
