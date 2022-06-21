@@ -953,7 +953,7 @@ tstart <- Sys.time()
       p <- ggplot(data = df, aes(start, end)) + 
         geom_point() + 
         facet_grid(facet~.) +geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax), color=NA, alpha=0.3, inherit.aes = FALSE)+
-        theme_ArchR(baseSize = baseSize, baseLineSize = borderWidth, baseRectSize = borderWidth) 
+        theme_ArchR(baseSize = baseSize, baseLineSize = borderWidth, baseRectSize = borderWidth) +
         scale_x_continuous(limits = c(start(region), end(region)), expand = c(0,0)) +
         theme(axis.title.x=element_blank(), axis.text.x=element_blank(),axis.ticks.x=element_blank()) +
         theme(axis.title.y=element_blank(), axis.text.y=element_blank(),axis.ticks.y=element_blank())
